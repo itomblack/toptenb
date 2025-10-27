@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import placeholderImage from './bumshot.JPG';
 
 const medalColors = {
@@ -6,6 +6,8 @@ const medalColors = {
   2: '#c0c0c0',
   3: '#cd7f32',
 };
+
+const SITE_PASSWORD = (import.meta.env.VITE_SITE_PASSWORD ?? '').trim();
 
 const EyeIcon = () => (
   <svg
@@ -81,6 +83,19 @@ function EntryModal({ entry, onClose }) {
 }
 
 export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    if (!SITE_PASSWORD) {
+      return true;
+    }
+
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    return window.localStorage.getItem('site:authenticated') === 'true';
+  });
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const [selectedEntry, setSelectedEntry] = useState(null);
 
   const leaderboard = useMemo(
@@ -92,6 +107,66 @@ export default function App() {
       })),
     [],
   );
+
+  useEffect(() => {
+    if (!SITE_PASSWORD || typeof window === 'undefined') {
+      return;
+    }
+
+    if (isAuthenticated) {
+      window.localStorage.setItem('site:authenticated', 'true');
+    } else {
+      window.localStorage.removeItem('site:authenticated');
+    }
+  }, [isAuthenticated]);
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+
+    if (!SITE_PASSWORD || password === SITE_PASSWORD) {
+      setIsAuthenticated(true);
+      setPassword('');
+      setError('');
+      return;
+    }
+
+    setError('Incorrect password. Please try again.');
+    setPassword('');
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="auth-gate">
+        <form className="auth-card" onSubmit={handleSubmit}>
+          <h1>Members Only</h1>
+          {SITE_PASSWORD ? (
+            <p>Enter the password to continue.</p>
+          ) : (
+            <p>Password protection is not configured.</p>
+          )}
+          {SITE_PASSWORD && (
+            <>
+              <label className="auth-label" htmlFor="password-input">
+                Password
+              </label>
+              <input
+                id="password-input"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                className="auth-input"
+              />
+              {error && <p className="auth-error">{error}</p>}
+              <button type="submit" className="auth-button">
+                Unlock
+              </button>
+            </>
+          )}
+        </form>
+      </div>
+    );
+  }
 
   return (
     <div className="app">
