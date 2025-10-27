@@ -100,7 +100,7 @@ export default function App() {
         <h1>Top Ten Bums 2025</h1>
         <p>This year's winning entries!</p>
       </header>
-      <main>
+      <main className="leaderboard-container">
         <div className="leaderboard">
           {leaderboard.map((entry) => (
             <LeaderboardRow
